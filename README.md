@@ -20,3 +20,47 @@ In any e-commerce system, if two customers try to buy the last unit of a product
 - JUnit 5 for concurrency testing
 
 ## Architecture
+
+Controller → Service → Repository → PostgreSQL
+
+- `ProductController` / `OrderController` — expose REST endpoints
+- `OrderService` — contains the core business logic: stock check, stock deduction, optimistic-lock-protected save
+- `ProductRepository` / `OrderRepository` — Spring Data JPA repositories, no manual SQL
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/products` | Create a new product |
+| GET | `/products` | List all products |
+| POST | `/orders` | Place an order (deducts stock, protected by optimistic locking) |
+
+### Example: Create a product
+
+curl -X POST http://localhost:8080/products \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Wireless Mouse", "price": 799.0, "stockQuantity": 50}'
+
+### Example: Place an order
+
+curl -X POST http://localhost:8080/orders \
+  -H "Content-Type: application/json" \
+  -d '{"productId": 1, "quantity": 5}'
+
+## Running Locally
+
+1. Start Postgres in Docker:
+
+docker run --name order-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=orderdb -p 5432:5432 -d postgres:16
+
+2. Run the app:
+
+./mvnw spring-boot:run
+
+3. Run the concurrency test:
+
+./mvnw test -Dtest=ConcurrencyTest
+
+## What This Demonstrates
+
+This project was built to go beyond a typical CRUD demo — it targets a genuine distributed-systems problem (race conditions on shared state) and backs the solution with an automated test proving it works, rather than just claiming it does.
